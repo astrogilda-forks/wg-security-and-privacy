@@ -203,6 +203,8 @@ Runtime detection, watching a deployed agent for drift from baseline, is a produ
 
 **Two-stream pipeline.** A compliance stream (action, approval, delegation, model-call, decision events; 100% capture, no sampling, cryptographic integrity, retention-locked storage) and an operational stream (verbose reasoning traces, diagnostics, performance metrics; sampled, short retention, basic checksums only). Assignment is by event category, not by system importance or volume, this also resolves most data-minimization tension, since personal data confined to the operational stream ages out quickly and was never written to the protected compliance stream at all.
 
+**Admit evidence before relying on it.** A signed log entry proves who wrote it. The signature says nothing about whether the content matches what happened. Many fields in an agent record are declared by the agent or its runtime: the tool it says it called, the policy it says applied, the model it says answered. Other fields are observed by a component the agent cannot write to, such as a gateway, a sandbox monitor, or the tool's own server. An investigation that treats both kinds as equal can be steered by whoever controls the agent. Before a record enters the compliance stream or an incident timeline, run an admission check on it. Verify the signature over the exact bytes, check the canonical encoding, and confirm that every reference resolves to an artifact that exists. Tag each field as `declared` or `observed`, and resolve a conflict between the two in favor of the observed field. Test the admission check itself against a fixed set of records with known outcomes, including altered bytes, missing evidence, and declared fields that contradict observed ones, and run that test in CI so a parser change can't quietly start accepting records it used to refuse. The [agent-evidence-vectors](https://pypi.org/project/agent-evidence-vectors/) corpus is one such set, and it ships a GitHub Action for the CI step.
+
 **Kill-switch runbook as a forensic artifact, not just a containment one.** A usable runbook specifies four things explicitly:
 1. the exhaustive trigger conditions (so an on-call engineer is not exercising judgment under pressure about whether a threshold was met)
 2. the authority chain (who can trigger an immediate halt versus who must sign off on restart , these should differ)
@@ -247,6 +249,7 @@ Maturity: GA (production-ready), Beta (publicly released with caveats), Experime
 | Forensics - tracing standard | OpenTelemetry GenAI Semantic Conventions | Standard | Development | Free | Wrap in a versioned internal envelope; not yet stable |
 | Forensics - runtime detection | Falco | Open Source | GA | Free | eBPF syscall monitoring; CNCF Graduated |
 | Forensics - compliance mapping | CSA AI Controls Matrix v1.0 | Framework | GA | Free | 243 controls; EU AI Act + GDPR + NIST + ISO 42001 crosswalk |
+| Forensics - evidence admission | agent-evidence-vectors | Open Source | Beta | Free | Accept/reject test records for agent evidence verifiers (signature, canonical encoding, missing evidence, declared-vs-observed conflicts); pin a version and run it as a GitHub Action |
 
 ## Appendix A: Source Ledger
 
